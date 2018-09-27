@@ -7,13 +7,11 @@ const removeDir = dir => {
   }catch(e){}
 };
 
-removeDir("client-bin");
-removeDir("server-bin");
+removeDir("-bin");
 try{
-  fs.mkdirSync("client-bin");
-  fs.mkdirSync("server-bin");
+  fs.mkdirSync("bin");
 }catch(e){}
 console.log("building client");
-execSync("pkg index.js --out-path client-bin/");
+execSync("nexe -t windows-x64-10.10.0 index.js --name client --output bin/client.exe");
 console.log("building server");
-execSync("pkg server.js --out-path server-bin/");
+execSync("nexe -t windows-x64-10.10.0 server.js --name server --output bin/server.exe");
