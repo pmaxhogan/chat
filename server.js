@@ -35,6 +35,38 @@ function stdinLineByLine() {
   return stdin;
 }
 
+const runCommand = (string, socket) => {
+  try{
+    string = string.substr(1);
+    const args = string.split(" ");
+    const command = args.shift();
+    const commands = "name,list".split(",");
+
+    switch (command) {
+      case "name":
+        if(!args[0]) return socket.write("Specify a new name as the first arg.");
+        const name = args[0].toLowerCase();
+        if(clients.some(client => client.name === name)){
+          return socket.write("Name already in use!");
+        }
+        broadcast(socket.name + " changed their name to " + name);
+        socket.name = name;
+        break;
+      case "help":
+        socket.write("Commands: " + commands.join(","));
+        break;
+      case "list":
+        socket.write(clients.reduce((client, acc) => acc + ", " + client.name, ""));
+        break;
+      default:
+        socket.write("Unknown command");
+    }
+  }catch(e){
+    console.error(e);
+    socket.write("Unknown error.");
+  }
+};
+
 const stdin = stdinLineByLine();
 
 const clients = [];
@@ -55,6 +87,9 @@ const server = net.createServer((socket) => {
   socket.on("data", function (data) {
     if(!data) return;
     data = data.toString();
+    if(data[0] === "/"){
+      return runCommand(data, socket);
+    }
     broadcast("[" + socket.name + "] " + data.replace(regex, ""), socket);
   });
 
