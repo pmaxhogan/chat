@@ -48,6 +48,8 @@ const server = net.createServer((socket) => {
   broadcast(socket.name + " joined", socket);
 
   socket.on("data", function (data) {
+    if(!data) return;
+    data = data.toString();
     broadcast("[" + socket.name + "] " + data.replace(regex, ""), socket);
   });
 
