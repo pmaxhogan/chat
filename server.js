@@ -3,6 +3,8 @@ const readline = require('readline');
 const settings = require("./settings.json");
 const EventEmitter = require("events");
 
+const MOTD = "/help for help, /name to change name, Control + C to exit";
+
 const regex = /\b|([\u001b\u009b][[()#;?]*(?:[0-9]{1,4}(?:;[0-9]{0,4})*)?[0-9A-ORZcf-nqry=><])/g;
 
 process.stdin.setRawMode(true);
@@ -56,7 +58,7 @@ const runCommand = (string, socket) => {
         socket.write("Commands: " + commands.join(","));
         break;
       case "list":
-        socket.write(clients.reduce((acc, client) => acc + ", " + client.name, ""));
+        socket.write(clients.map(c => c.name).join(", "));
         break;
       default:
         socket.write("Unknown command");
@@ -83,6 +85,7 @@ const server = net.createServer((socket) => {
   clients.push(socket);
 
   broadcast(socket.name + " joined", socket);
+  socket.write(MOTD);
 
   socket.on("data", function (data) {
     if(!data) return;
