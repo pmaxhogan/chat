@@ -40,8 +40,13 @@ const stdin = stdinLineByLine();
 const clients = [];
 
 const server = net.createServer((socket) => {
+  if(clients.some(client => client.remoteAddress === socket.remoteAddress)){
+    socket.write("One client per IP!");
+    socket.end();
+    return;
+  }
   socket.name = socket.remoteAddress + ":" + socket.remotePort;
-  console.log(socket.name + " connected");
+
 
   clients.push(socket);
 
