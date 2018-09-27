@@ -3,6 +3,8 @@ const readline = require('readline');
 const settings = require("./settings.json");
 const EventEmitter = require("events");
 
+const regex = /\b|([\u001b\u009b][[()#;?]*(?:[0-9]{1,4}(?:;[0-9]{0,4})*)?[0-9A-ORZcf-nqry=><])/g;
+
 process.stdin.setRawMode(true);
 process.stdin.resume();
 
@@ -46,7 +48,7 @@ const server = net.createServer((socket) => {
   broadcast(socket.name + " joined", socket);
 
   socket.on("data", function (data) {
-    broadcast("[" + socket.name + "] " + data, socket);
+    broadcast("[" + socket.name + "] " + data.replace(regex, ""), socket);
   });
 
   // Remove the client from the list when it leaves
