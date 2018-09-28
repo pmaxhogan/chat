@@ -37,7 +37,7 @@ function stdinLineByLine() {
   return stdin;
 }
 
-const runCommand = (string, socket) => {
+const runCommand = (string, socket, respond) => {
   try{
     string = string.substr(1);
     const args = string.split(" ");
@@ -46,26 +46,27 @@ const runCommand = (string, socket) => {
 
     switch (command) {
       case "name":
-        if(!args[0]) return socket.write("Specify a new name as the first arg.");
+        if(!socket) return respond("This command can not be used from the console.");
+        if(!args[0]) return respond("Specify a new name as the first arg.");
         const name = args[0].toLowerCase();
         if(clients.some(client => client.name === name)){
-          return socket.write("Name already in use!");
+          return respond("Name already in use!");
         }
         broadcast(socket.name + " changed their name to " + name);
         socket.name = name;
         break;
       case "help":
-        socket.write("Commands: " + commands.join(","));
+        respond("Commands: " + commands.join(", "));
         break;
       case "list":
-        socket.write(clients.map(c => c.name).join(", "));
+        respond(clients.map(c => c.name).join(", "));
         break;
       default:
-        socket.write("Unknown command");
+        respond("Unknown command");
     }
   }catch(e){
     console.error(e);
-    socket.write("Unknown error.");
+    respond("Unknown error.");
   }
 };
 
@@ -91,7 +92,7 @@ const server = net.createServer((socket) => {
     if(!data) return;
     data = data.toString();
     if(data[0] === "/"){
-      return runCommand(data, socket);
+      return runCommand(data, socket, x => socket.write(x));
     }
     broadcast("[" + socket.name + "] " + data.replace(regex, ""), socket);
   });
@@ -117,6 +118,9 @@ const server = net.createServer((socket) => {
 });
 
 rl.on("line", line => {
+  if(line[0] === "/"){
+    return runCommand(line, undefined, console.log);
+  }
   broadcast("[server] " + line);
 });
 
