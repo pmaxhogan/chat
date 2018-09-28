@@ -7,6 +7,8 @@ const MOTD = "/help for help, /name to change name, Control + C to exit";
 
 const regex = /\b|([\u001b\u009b][[()#;?]*(?:[0-9]{1,4}(?:;[0-9]{0,4})*)?[0-9A-ORZcf-nqry=><])/g;
 
+const stripBadChars = data => data.replace(regex, "");
+
 process.stdin.setRawMode(true);
 process.stdin.resume();
 
@@ -65,8 +67,12 @@ const runCommand = (string, socket, respond) => {
       case "changename":
         if(socket && !socket.admin) return respond("Insufficient permissions!");
         if(!args[0] || !args[1]) return respond("Specify the user as the first arg, and a new nick as the second.");
+        args[1] = stripBadChars(args[1]);
         user = clients.find(client => client.name === args[0] || client.remoteAddress + ":" + client.remotePort === args[0]);
         if(!user) return respond("User not found.");
+        if(clients.some(client => client.name === name)){
+          return respond("Name already in use!");
+        }
         user.name = args[1];
         respond("Name changed.");
         break;
@@ -81,7 +87,7 @@ const runCommand = (string, socket, respond) => {
         respond("Kicked.");
         break;
       default:
-        respond("Unknown command " + command);
+        respond("Unknown command " + stripBadChars(command));
     }
   }catch(e){
     console.error(e);
@@ -113,23 +119,23 @@ const server = net.createServer((socket) => {
     if(data[0] === "/"){
       return runCommand(data, socket, x => socket.write(x));
     }
-    broadcast("[" + socket.name + "] " + data.replace(regex, ""), socket);
+    broadcast("[" + socket.name + "] " + stripBadChars(data), socket);
   });
 
   socket.on("end", function () {
-    clients.splice(clients.indexOf(socket), 1);
-    broadcast(socket.name + " left");
+    const idx = clients.indexOf(socket);
+    if(idx >= 0) clients.splice(clients.indexOf(socket), 1);
   });
 
   socket.on("close", function () {
-    clients.splice(clients.indexOf(socket), 1);
+    const idx = clients.indexOf(socket);
+    if(idx >= 0) clients.splice(idx, 1);
     broadcast(socket.name + " left");
   });
 
   socket.on("error", (err) => {
     if(err.code === "ECONNRESET"){
       clients.splice(clients.indexOf(socket), 1);
-      broadcast(socket.name + " left");
       return;
     }
 

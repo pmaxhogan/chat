@@ -3,7 +3,7 @@ const readline = require('readline');
 const settings = require("./settings.json");
 const EventEmitter = require('events');
 
-process.stdin.setRawMode(true);
+if(process.stdin.isTTY) process.stdin.setRawMode(true);
 process.stdin.resume();
 
 const rl = readline.createInterface({
@@ -37,9 +37,10 @@ const stdin = stdinLineByLine();
 
 const server = net.connect({
   host: process.argv[2],
-  port: process.argv[3] || settings.port,
-  timeout: 10 * 1000
-}, () => {}).
+  port: process.argv[3] || settings.port
+}, () => {
+  process.stdin.resume();
+}).
 on("error", (err) => {
   if(err.code === "ECONNRESET") return;
 
