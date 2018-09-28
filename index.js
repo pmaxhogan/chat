@@ -35,7 +35,11 @@ function stdinLineByLine() {
 
 const stdin = stdinLineByLine();
 
-const server = net.connect({host: process.argv[2], port: process.argv[3] || settings.port}, () => {}).
+const server = net.connect({
+  host: process.argv[2],
+  port: process.argv[3] || settings.port,
+  timeout: 10 * 1000
+}, () => {}).
 on("error", (err) => {
   if(err.code === "ECONNRESET") return;
 
@@ -57,5 +61,10 @@ on("close", () => {
 }).
 on("end", () => {
   console.log("Connection ended.");
+  process.exit();
+}).
+on("timeout", () => {
+  console.log("Connection timed out.");
+  server.destroy();
   process.exit();
 });
