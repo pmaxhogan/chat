@@ -68,15 +68,19 @@ const runCommand = (string, socket, respond) => {
         user = clients.find(client => client.name === args[0] || client.remoteAddress + ":" + client.remotePort === args[0]);
         if(!user) return respond("User not found.");
         user.name = args[1];
+        respond("Name changed.");
         break;
       case "kick":
         if(socket && !socket.admin) return respond("Insufficient permissions!");
         if(!args[0]) return respond("Please specify the user to kick.");
         user = clients.find(client => client.name === args[0] || client.remoteAddress + ":" + client.remotePort === args[0]);
         if(!user) return respond("User not found.");
+        user.send("Kicked.");
         user.destroy();
+        respond("Kicked.");
+        break;
       default:
-        respond("Unknown command");
+        respond("Unknown command " + command);
     }
   }catch(e){
     console.error(e);
