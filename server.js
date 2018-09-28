@@ -42,7 +42,8 @@ const runCommand = (string, socket, respond) => {
     string = string.substr(1);
     const args = string.split(" ");
     const command = args.shift();
-    const commands = "name,list".split(",");
+    const commands = "name,list,changename,kick".split(",");
+    let user;
 
     switch (command) {
       case "name":
@@ -61,6 +62,19 @@ const runCommand = (string, socket, respond) => {
       case "list":
         respond(clients.map(c => c.name).join(", "));
         break;
+      case "changename":
+        if(socket && !socket.admin) return respond("Insufficient permissions!");
+        if(!args[0] || !args[1]) return respond("Specify the user as the first arg, and a new nick as the second.");
+        user = clients.find(client => client.name === args[0] || client.remoteAddress + ":" + client.remotePort === args[0]);
+        if(!user) return respond("User not found.");
+        user.name = args[1];
+        break;
+      case "kick":
+        if(socket && !socket.admin) return respond("Insufficient permissions!");
+        if(!args[0]) return respond("Please specify the user to kick.");
+        user = clients.find(client => client.name === args[0] || client.remoteAddress + ":" + client.remotePort === args[0]);
+        if(!user) return respond("User not found.");
+        user.destroy();
       default:
         respond("Unknown command");
     }
