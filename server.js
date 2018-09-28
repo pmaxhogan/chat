@@ -75,7 +75,8 @@ const runCommand = (string, socket, respond) => {
         if(!args[0]) return respond("Please specify the user to kick.");
         user = clients.find(client => client.name === args[0] || client.remoteAddress + ":" + client.remotePort === args[0]);
         if(!user) return respond("User not found.");
-        user.send("Kicked.");
+        try{user.write("Kicked.");}catch(e){}
+        broadcast(user.name + " was kicked.", user);
         user.destroy();
         respond("Kicked.");
         break;
@@ -93,7 +94,7 @@ const stdin = stdinLineByLine();
 const clients = [];
 
 const server = net.createServer((socket) => {
-  if(clients.some(client => client.remoteAddress === socket.remoteAddress)){
+  if(clients.some(client => client.remoteAddress === socket.remoteAddress) && socket.remoteAddress !== "127.0.0.1" && socket.remoteAddress !== "::ffff:127.0.0.1"){
     socket.write("One client per IP!");
     socket.end();
     return;
@@ -115,8 +116,12 @@ const server = net.createServer((socket) => {
     broadcast("[" + socket.name + "] " + data.replace(regex, ""), socket);
   });
 
-  // Remove the client from the list when it leaves
   socket.on("end", function () {
+    clients.splice(clients.indexOf(socket), 1);
+    broadcast(socket.name + " left");
+  });
+
+  socket.on("close", function () {
     clients.splice(clients.indexOf(socket), 1);
     broadcast(socket.name + " left");
   });
