@@ -50,4 +50,12 @@ on("ready", () => {
   rl.on("line", line => {
     server.write(line);
   });
+}).
+on("close", () => {
+  console.log("Connection closed.");
+  process.exit();
+}).
+on("end", () => {
+  console.log("Connection ended.");
+  process.exit();
 });
