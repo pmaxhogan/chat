@@ -17,48 +17,47 @@ const stdin = new EventEmitter();
 let buff = "";
 
 process.stdin
-.on("data", data => {
-  if(data.toString()=== "\u0003") {
+  .on("data", data => {
+    if(data.toString()=== "\u0003") {
     //Control+C exits
-    process.exit();
-  }
-  buff += data;
-  lines = buff.split(/[\r\n|\n]/);
-  buff = lines.pop();
-  lines.forEach(line => stdin.emit("line", line));
-})
-.on("end", () => {
-  if (buff.length > 0) stdin.emit("line", buff);
-});
+      process.exit();
+    }
 
-return stdin;
+    buff += data;
+    let lines = buff.split(/[\r\n|\n]/);
+    buff = lines.pop();
+    lines.forEach(line => stdin.emit("line", line));
+  })
+  .on("end", () => {
+    if (buff.length > 0) stdin.emit("line", buff);
+  });
 
 const server = net.connect({
   host: process.argv[2],
   port: process.argv[3] || settings.port
 }).
-on("error", (err) => {
-  if(err.code === "ECONNRESET") return;
+  on("error", (err) => {
+    if(err.code === "ECONNRESET") return;
 
-  throw err;
-}).
-on("data", (data) => {
-  process.stdout.write(data.toString() + "\n");
-}).
-on("ready", () => {
-  console.log("Connected to " + server.remoteAddress);
+    throw err;
+  }).
+  on("data", (data) => {
+    process.stdout.write(data.toString() + "\n");
+  }).
+  on("ready", () => {
+    console.log("Connected to " + server.remoteAddress);
 
-  rl.on("line", line => {
-    server.write(line);
+    rl.on("line", line => {
+      server.write(line);
+    });
+  }).
+  on("close", exit).
+  on("end", exit).
+  on("timeout", () => {
+    console.log("Connection timed out.");
+    server.destroy();
+    process.exit();
   });
-}).
-on("close", exit).
-on("end", exit.
-on("timeout", () => {
-  console.log("Connection timed out.");
-  server.destroy();
-  process.exit();
-});
 
 const exit = () => {
   console.log("Connection ended.");
