@@ -32,6 +32,11 @@ process.stdin
     if (buff.length > 0) stdin.emit("line", buff);
   });
 
+const exit = () => {
+  console.log("Connection ended.");
+  process.exit();
+};
+
 const server = net.connect({
   host: process.argv[2],
   port: process.argv[3] || settings.port
@@ -58,8 +63,3 @@ const server = net.connect({
     server.destroy();
     process.exit();
   });
-
-const exit = () => {
-  console.log("Connection ended.");
-  process.exit();
-};
