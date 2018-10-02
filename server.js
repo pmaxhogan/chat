@@ -1,3 +1,5 @@
+#!/usr/bin/env node
+
 const net = require("net");
 const readline = require("readline");
 const settings = require("./settings.json");
