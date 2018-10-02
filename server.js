@@ -32,6 +32,7 @@ const runCommand = (string, socket, respond) => {
     let name;
 
     const checkAdmin = () => !socket || socket.admin;
+    const findUser = name =>  clients.find(client => client.name === name || client.remoteAddress + ":" + client.remotePort === name);
 
     switch (command) {
     case "quit":
@@ -60,7 +61,7 @@ const runCommand = (string, socket, respond) => {
       if(!checkAdmin()) return respond("Insufficient permissions!");
       if(!args[0] || !args[1]) return respond("Specify the user as the first arg, and a new nick as the second.");
       args[1] = stripBadChars(args[1]);
-      user = clients.find(client => client.name === args[0] || client.remoteAddress + ":" + client.remotePort === args[0]);
+      user = findUser(args[0]);
       if(!user) return respond("User not found.");
       if(clients.some(client => client.name === name)){
         return respond("Name already in use!");
@@ -71,7 +72,7 @@ const runCommand = (string, socket, respond) => {
     case "kick":
       if(!checkAdmin()) return respond("Insufficient permissions!");
       if(!args[0]) return respond("Please specify the user to kick.");
-      user = clients.find(client => client.name === args[0] || client.remoteAddress + ":" + client.remotePort === args[0]);
+      user = findUser(args[0]);
       if(!user) return respond("User not found.");
       clients.forEach(client => {
         try{client.sendControlMessage("kicked", ...args.splice(1));}catch(e){}//eslint-disable-line no-empty
@@ -89,6 +90,12 @@ const runCommand = (string, socket, respond) => {
         }catch(e){}//eslint-disable-line no-empty
       });
       ipBans.push(args[0]);
+      break;
+    case "whois":
+      if(!args[0]) return respond("Please specify the user to find the IP of.");
+      user = findUser(args[0]);
+      if(!user) return respond("Unknown user.");
+      respond(user.remoteAddress + ":" + user.remotePort);
       break;
     default:
       respond("Unknown command " + stripBadChars(command));

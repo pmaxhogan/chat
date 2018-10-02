@@ -2,6 +2,7 @@
 const expect = require("chai").expect;
 const net = require("net");
 const child_process = require("child_process");
+const meta = require("./meta.json");
 
 const sleep = time => new Promise(resolve => setTimeout(resolve, time).unref());
 
@@ -31,9 +32,9 @@ describe("server", async function(){
     expect(socket).to.not.equal(undefined);
     expect(socket.isDestroyed).to.not.equal(true);
   });
-  it("should allow /help", async function(){
+  it("should allow all commands", async function(){
     await sleep(550);
-    socket.write("/help\n");
+    meta.commands.forEach(command => socket.write(command + "\n"));
     await sleep(250);
     expect(socket).to.not.equal(undefined);
     expect(socket.isDestroyed).to.not.equal(true);
