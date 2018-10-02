@@ -45,6 +45,8 @@ const server = net.connect({
     throw err;
   }).
   on("data", (data) => {
+    if(!data || !data.toString()) return;
+    data = data.toString();
     const lines = data.split("\n");
     lines.forEach(line => {
       if(line[0] === controlMessageChar){
