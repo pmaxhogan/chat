@@ -53,7 +53,7 @@ on("ready", () => {
   console.log("Connected to " + server.remoteAddress);
 
   rl.on("line", line => {
-    server.write(line);
+    server.write(line.trim() + "\x1A");
   });
 }).
 on("close", () => {

@@ -113,9 +113,23 @@ const server = net.createServer((socket) => {
   broadcast(socket.name + " joined", socket);
   socket.write(MOTD);
 
+  socket.incompleteData = "";
   socket.on("data", function (data) {
     if(!data) return;
     data = data.toString();
+    if(!data.includes("\x1A")) return socket.incompleteData += data;
+
+    let buffer = "";
+    data.split("").forEach(char => {
+      if(char === "\x1A"){
+        const message = buffer;
+        console.log("Got message", message);
+        buffer = "";
+      }else{
+        buffer += char;
+      }
+    });
+
     if(data[0] === "/"){
       return runCommand(data, socket, x => socket.write(x));
     }
