@@ -11,7 +11,7 @@ const regex = /\b|([\u001b\u009b][[()#;?]*(?:[0-9]{1,4}(?:;[0-9]{0,4})*)?[0-9A-O
 
 const stripBadChars = data => data.replace(regex, "");
 
-process.stdin.setRawMode(true);
+if(process.stdin.isTTY) process.stdin.setRawMode(true);
 process.stdin.resume();
 
 const rl = readline.createInterface({
