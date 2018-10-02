@@ -1,7 +1,6 @@
 const net = require("net");
-const readline = require('readline');
+const readline = require("readline");
 const settings = require("./settings.json");
-const EventEmitter = require("events");
 
 const MOTD = "/help for help, /name to change name, Control + C to exit";
 
@@ -18,27 +17,6 @@ const rl = readline.createInterface({
 });
 rl.setPrompt("");
 
-function stdinLineByLine() {
-  const stdin = new EventEmitter();
-  let buff = "";
-
-  process.stdin
-  .on("data", data => {
-    if(data.toString()=== "\u0003") {
-      process.exit();
-    }
-    buff += data;
-    lines = buff.split(/[\r\n|\n]/);
-    buff = lines.pop();
-    lines.forEach(line => stdin.emit("line", line));
-  })
-  .on("end", () => {
-    if (buff.length > 0) stdin.emit("line", buff);
-  });
-
-  return stdin;
-}
-
 const runCommand = (string, socket, respond) => {
   try{
     string = string.substr(1);
@@ -46,56 +24,55 @@ const runCommand = (string, socket, respond) => {
     const command = args.shift();
     const commands = "name,list,changename,kick".split(",");
     let user;
+    let name;
 
     switch (command) {
-      case "name":
-        if(!socket) return respond("This command can not be used from the console.");
-        if(!args[0]) return respond("Specify a new name as the first arg.");
-        const name = args[0].toLowerCase();
-        if(clients.some(client => client.name === name)){
-          return respond("Name already in use!");
-        }
-        broadcast(socket.name + " changed their name to " + name);
-        socket.name = name;
-        break;
-      case "help":
-        respond("Commands: " + commands.join(", "));
-        break;
-      case "list":
-        respond(clients.map(c => c.name).join(", "));
-        break;
-      case "changename":
-        if(socket && !socket.admin) return respond("Insufficient permissions!");
-        if(!args[0] || !args[1]) return respond("Specify the user as the first arg, and a new nick as the second.");
-        args[1] = stripBadChars(args[1]);
-        user = clients.find(client => client.name === args[0] || client.remoteAddress + ":" + client.remotePort === args[0]);
-        if(!user) return respond("User not found.");
-        if(clients.some(client => client.name === name)){
-          return respond("Name already in use!");
-        }
-        user.name = args[1];
-        respond("Name changed.");
-        break;
-      case "kick":
-        if(socket && !socket.admin) return respond("Insufficient permissions!");
-        if(!args[0]) return respond("Please specify the user to kick.");
-        user = clients.find(client => client.name === args[0] || client.remoteAddress + ":" + client.remotePort === args[0]);
-        if(!user) return respond("User not found.");
-        try{user.write("Kicked.");}catch(e){}
-        broadcast(user.name + " was kicked.", user);
-        user.destroy();
-        respond("Kicked.");
-        break;
-      default:
-        respond("Unknown command " + stripBadChars(command));
+    case "name":
+      if(!socket) return respond("This command can not be used from the console.");
+      if(!args[0]) return respond("Specify a new name as the first arg.");
+      name = args[0].toLowerCase();
+      if(clients.some(client => client.name === name)){
+        return respond("Name already in use!");
+      }
+      broadcast(socket.name + " changed their name to " + name);
+      socket.name = name;
+      break;
+    case "help":
+      respond("Commands: " + commands.join(", "));
+      break;
+    case "list":
+      respond(clients.map(c => c.name).join(", "));
+      break;
+    case "changename":
+      if(socket && !socket.admin) return respond("Insufficient permissions!");
+      if(!args[0] || !args[1]) return respond("Specify the user as the first arg, and a new nick as the second.");
+      args[1] = stripBadChars(args[1]);
+      user = clients.find(client => client.name === args[0] || client.remoteAddress + ":" + client.remotePort === args[0]);
+      if(!user) return respond("User not found.");
+      if(clients.some(client => client.name === name)){
+        return respond("Name already in use!");
+      }
+      user.name = args[1];
+      respond("Name changed.");
+      break;
+    case "kick":
+      if(socket && !socket.admin) return respond("Insufficient permissions!");
+      if(!args[0]) return respond("Please specify the user to kick.");
+      user = clients.find(client => client.name === args[0] || client.remoteAddress + ":" + client.remotePort === args[0]);
+      if(!user) return respond("User not found.");
+      try{user.write("Kicked.");}catch(e){}//eslint-disable-line no-empty
+      broadcast(user.name + " was kicked.", user);
+      user.destroy();
+      respond("Kicked.");
+      break;
+    default:
+      respond("Unknown command " + stripBadChars(command));
     }
   }catch(e){
     console.error(e);
     respond("Unknown error.");
   }
 };
-
-const stdin = stdinLineByLine();
 
 const clients = [];
 

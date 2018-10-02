@@ -1,8 +1,9 @@
-const net = require('net');
-const readline = require('readline');
+const net = require("net");
+const readline = require("readline");
 const settings = require("./settings.json");
-const EventEmitter = require('events');
+const EventEmitter = require("events");
 
+//enable raw mode
 if(process.stdin.isTTY) process.stdin.setRawMode(true);
 process.stdin.resume();
 
@@ -12,60 +13,53 @@ const rl = readline.createInterface({
 });
 rl.setPrompt("");
 
-function stdinLineByLine() {
-  const stdin = new EventEmitter();
-  let buff = "";
+const stdin = new EventEmitter();
+let buff = "";
 
-  process.stdin
-    .on('data', data => {
-      if(data.toString()=== "\u0003") {
-        process.exit();
-      }
-      buff += data;
-      lines = buff.split(/[\r\n|\n]/);
-      buff = lines.pop();
-      lines.forEach(line => stdin.emit('line', line));
-    })
-    .on('end', () => {
-      if (buff.length > 0) stdin.emit('line', buff);
-    });
+process.stdin
+  .on("data", data => {
+    if(data.toString()=== "\u0003") {
+    //Control+C exits
+      process.exit();
+    }
 
-  return stdin;
-}
+    buff += data;
+    let lines = buff.split(/[\r\n|\n]/);
+    buff = lines.pop();
+    lines.forEach(line => stdin.emit("line", line));
+  })
+  .on("end", () => {
+    if (buff.length > 0) stdin.emit("line", buff);
+  });
 
-const stdin = stdinLineByLine();
+const exit = () => {
+  console.log("Connection ended.");
+  process.exit();
+};
 
 const server = net.connect({
   host: process.argv[2],
   port: process.argv[3] || settings.port
-}, () => {
-  process.stdin.resume();
 }).
-on("error", (err) => {
-  if(err.code === "ECONNRESET") return;
+  on("error", (err) => {
+    if(err.code === "ECONNRESET") return;
 
-  throw err;
-}).
-on("data", (data) => {
-  process.stdout.write(data.toString() + "\n");
-}).
-on("ready", () => {
-  console.log("Connected to " + server.remoteAddress);
+    throw err;
+  }).
+  on("data", (data) => {
+    process.stdout.write(data.toString() + "\n");
+  }).
+  on("ready", () => {
+    console.log("Connected to " + server.remoteAddress);
 
-  rl.on("line", line => {
-    server.write(line.trim() + "\x1A");
+    rl.on("line", line => {
+      server.write(line);
+    });
+  }).
+  on("close", exit).
+  on("end", exit).
+  on("timeout", () => {
+    console.log("Connection timed out.");
+    server.destroy();
+    process.exit();
   });
-}).
-on("close", () => {
-  console.log("Connection closed.");
-  process.exit();
-}).
-on("end", () => {
-  console.log("Connection ended.");
-  process.exit();
-}).
-on("timeout", () => {
-  console.log("Connection timed out.");
-  server.destroy();
-  process.exit();
-});
