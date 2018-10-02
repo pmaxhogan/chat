@@ -93,7 +93,7 @@ const server = net.createServer((socket) => {
   };
 
   socket.sendControlMessage("startmeta");
-  socket.write(JSON.stringify(meta));
+  socket.write(JSON.stringify(meta) + "\n");
   socket.sendControlMessage("endmeta");
 
   socket.write(MOTD);
