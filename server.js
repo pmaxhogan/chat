@@ -18,12 +18,14 @@ const rl = readline.createInterface({
 });
 rl.setPrompt("");
 
+const ipBans = [];
+
 const runCommand = (string, socket, respond) => {
   try{
     string = string.substr(1);
     const args = string.split(" ");
     const command = args.shift();
-    const commands = "name,list,changename,kick".split(",");
+    const commands = meta.commands;
     let user;
     let name;
 
@@ -74,6 +76,18 @@ const runCommand = (string, socket, respond) => {
       });
       user.destroy();
       break;
+    case "banip":
+      if(!checkAdmin()) return respond("Insufficient permissions!");
+      if(!args[0]) return respond("Please specify the ip to ban.");
+      if(ipBans.includes(args[0])) return respond("Already banned that ip!");
+      clients.forEach(client => {
+        try{
+          client.sendControlMessage("ipbanned", ...args.splice(1));
+          if(client.remoteAddress === args[0]) client.destroy();
+        }catch(e){}//eslint-disable-line no-empty
+      });
+      ipBans.push(args[0]);
+      break;
     default:
       respond("Unknown command " + stripBadChars(command));
     }
@@ -86,6 +100,11 @@ const runCommand = (string, socket, respond) => {
 const clients = [];
 
 const server = net.createServer((socket) => {
+  if(ipBans.includes(socket.remoteAddress)){
+    console.log(socket.remoteAddress, "tried to connect again...");
+    socket.write("IP banned!");
+    socket.destroy();
+  }
   if(clients.some(client => client.remoteAddress === socket.remoteAddress) && socket.remoteAddress !== "127.0.0.1" && socket.remoteAddress !== "::ffff:127.0.0.1"){
     socket.write("One client per IP!");
     socket.end();
