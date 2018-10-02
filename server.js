@@ -69,10 +69,10 @@ const runCommand = (string, socket, respond) => {
       if(!args[0]) return respond("Please specify the user to kick.");
       user = clients.find(client => client.name === args[0] || client.remoteAddress + ":" + client.remotePort === args[0]);
       if(!user) return respond("User not found.");
-      try{user.write("Kicked.");}catch(e){}//eslint-disable-line no-empty
-      broadcast(user.name + " was kicked.", user);
+      clients.forEach(client => {
+        try{client.sendControlMessage("kicked", ...args.splice(1));}catch(e){}//eslint-disable-line no-empty
+      });
       user.destroy();
-      respond("Kicked.");
       break;
     default:
       respond("Unknown command " + stripBadChars(command));
@@ -95,7 +95,7 @@ const server = net.createServer((socket) => {
   clients.push(socket);
 
   socket.sendControlMessage = (message, ...args) => {
-    socket.write("·" + message + (args.length ? " " + args.join(" ") : "") + "\n");
+    socket.write("·" + message + (args.length ? " " + args.join(" ").trim() : "") + "\n");
   };
 
   socket.sendControlMessage("startmeta");

@@ -6,6 +6,7 @@
 		"/changename",
 		"/list",
 		"/help",
-		"/name"
+		"/name",
+		"/quit"
 	]
 }
