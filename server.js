@@ -82,7 +82,7 @@ const runCommand = (string, socket, respond) => {
       if(ipBans.includes(args[0])) return respond("Already banned that ip!");
       clients.forEach(client => {
         try{
-          client.sendControlMessage("ipbanned", ...args.splice(1));
+          client.sendControlMessage("ipbanned", ...[args[0]].concat(args.splice(1)));
           if(client.remoteAddress === args[0]) client.destroy();
         }catch(e){}//eslint-disable-line no-empty
       });
@@ -100,13 +100,17 @@ const runCommand = (string, socket, respond) => {
 const clients = [];
 
 const server = net.createServer((socket) => {
+  socket.safeWrite = (...args) => {
+    if(!socket.destroyed) socket.write(...args);
+  };
   if(ipBans.includes(socket.remoteAddress)){
     console.log(socket.remoteAddress, "tried to connect again...");
-    socket.write("IP banned!");
+    socket.safeWrite("IP banned!");
     socket.destroy();
+    return;
   }
   if(clients.some(client => client.remoteAddress === socket.remoteAddress) && socket.remoteAddress !== "127.0.0.1" && socket.remoteAddress !== "::ffff:127.0.0.1"){
-    socket.write("One client per IP!");
+    socket.safeWrite("One client per IP!");
     socket.end();
     return;
   }
@@ -114,14 +118,14 @@ const server = net.createServer((socket) => {
   clients.push(socket);
 
   socket.sendControlMessage = (message, ...args) => {
-    socket.write("·" + message + (args.length ? " " + args.join(" ").trim() : "") + "\n");
+    socket.safeWrite("·" + message + (args.length ? " " + args.join(" ").trim() : "") + "\n");
   };
 
   socket.sendControlMessage("startmeta");
-  socket.write(JSON.stringify(meta) + "\n");
+  socket.safeWrite(JSON.stringify(meta) + "\n");
   socket.sendControlMessage("endmeta");
 
-  socket.write(MOTD);
+  socket.safeWrite(MOTD);
 
   broadcast(socket.name + " joined", socket);
 
@@ -139,7 +143,7 @@ const server = net.createServer((socket) => {
 
         buffer = "";
         if(message[0] === "/"){
-          return runCommand(message, socket, x => socket.write(x));
+          return runCommand(message, socket, x => socket.safeWrite(x));
         }
 
         broadcast("[" + socket.name + "] " + stripBadChars(message), socket);
@@ -189,8 +193,11 @@ function broadcast(message, sender) {
   message = message.trim();
   process.stdout.write(message + "\n");
   clients.forEach(function (client) {
-    // Don"t want to send it to sender
-    if (client === sender && sender) return;
-    client.write(message);
+    if (client === sender && sender || client.destroyed) return;
+    try{
+      client.write(message);
+    }catch(e){
+      console.error("Couldn't send message to ", client.name);
+    }
   });
 }
