@@ -3,6 +3,7 @@ const readline = require("readline");
 const settings = require("./settings.json");
 
 const MOTD = "/help for help, /name to change name, Control + C to exit";
+const meta = require("./meta.json");
 const messageTerminator = "\n";
 const regex = /\b|([\u001b\u009b][[()#;?]*(?:[0-9]{1,4}(?:;[0-9]{0,4})*)?[0-9A-ORZcf-nqry=><])/g;
 
@@ -26,6 +27,8 @@ const runCommand = (string, socket, respond) => {
     let user;
     let name;
 
+    const checkAdmin = () => !socket || socket.admin;
+
     switch (command) {
     case "name":
       if(!socket) return respond("This command can not be used from the console.");
@@ -44,7 +47,7 @@ const runCommand = (string, socket, respond) => {
       respond(clients.map(c => c.name).join(", "));
       break;
     case "changename":
-      if(socket && !socket.admin) return respond("Insufficient permissions!");
+      if(!checkAdmin()) return respond("Insufficient permissions!");
       if(!args[0] || !args[1]) return respond("Specify the user as the first arg, and a new nick as the second.");
       args[1] = stripBadChars(args[1]);
       user = clients.find(client => client.name === args[0] || client.remoteAddress + ":" + client.remotePort === args[0]);
@@ -56,7 +59,7 @@ const runCommand = (string, socket, respond) => {
       respond("Name changed.");
       break;
     case "kick":
-      if(socket && !socket.admin) return respond("Insufficient permissions!");
+      if(!checkAdmin()) return respond("Insufficient permissions!");
       if(!args[0]) return respond("Please specify the user to kick.");
       user = clients.find(client => client.name === args[0] || client.remoteAddress + ":" + client.remotePort === args[0]);
       if(!user) return respond("User not found.");
@@ -83,12 +86,20 @@ const server = net.createServer((socket) => {
     return;
   }
   socket.name = socket.remoteAddress + ":" + socket.remotePort;
-
-
   clients.push(socket);
 
-  broadcast(socket.name + " joined", socket);
+  socket.sendControlMessage = (message, ...args) => {
+    socket.write("·" + message + (args.length ? " " + args.join(" ") : ""));
+  };
+
+  socket.sendControlMessage("startmeta");
+  socket.write(JSON.stringify(meta));
+  socket.sendControlMessage("endmeta");
+
   socket.write(MOTD);
+
+  broadcast(socket.name + " joined", socket);
+
 
   socket.incompleteData = "";
   socket.on("data", function (data) {
@@ -100,17 +111,17 @@ const server = net.createServer((socket) => {
     data.split("").forEach(char => {
       if(char === messageTerminator){
         const message = buffer;
-        console.log("Got message", message);
+
+        broadcast("[" + socket.name + "] " + stripBadChars(message), socket);
         buffer = "";
+
+        if(message[0] === "/"){
+          return runCommand(message, socket, x => socket.write(x));
+        }
       }else{
         buffer += char;
       }
     });
-
-    if(data[0] === "/"){
-      return runCommand(data, socket, x => socket.write(x));
-    }
-    broadcast("[" + socket.name + "] " + stripBadChars(data), socket);
   });
 
   socket.on("end", function () {

@@ -1,0 +1,11 @@
+{
+	"version": "Node.js chat",
+	"fullspec": false,
+	"commands": [
+		"/kick",
+		"/changename",
+		"/list",
+		"/help",
+		"/name"
+	]
+}
