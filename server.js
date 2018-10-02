@@ -89,7 +89,7 @@ const server = net.createServer((socket) => {
   clients.push(socket);
 
   socket.sendControlMessage = (message, ...args) => {
-    socket.write("·" + message + (args.length ? " " + args.join(" ") : ""));
+    socket.write("·" + message + (args.length ? " " + args.join(" ") : "") + "\n");
   };
 
   socket.sendControlMessage("startmeta");
