@@ -30,6 +30,12 @@ const runCommand = (string, socket, respond) => {
     const checkAdmin = () => !socket || socket.admin;
 
     switch (command) {
+    case "quit":
+      socket.end();
+      setTimeout(() => {
+        if(!socket.destroyed) socket.destroy();
+      }, 1000);
+      break;
     case "name":
       if(!socket) return respond("This command can not be used from the console.");
       if(!args[0]) return respond("Specify a new name as the first arg.");
@@ -112,12 +118,12 @@ const server = net.createServer((socket) => {
       if(char === messageTerminator){
         const message = buffer;
 
-        broadcast("[" + socket.name + "] " + stripBadChars(message), socket);
         buffer = "";
-
         if(message[0] === "/"){
           return runCommand(message, socket, x => socket.write(x));
         }
+
+        broadcast("[" + socket.name + "] " + stripBadChars(message), socket);
       }else{
         buffer += char;
       }
