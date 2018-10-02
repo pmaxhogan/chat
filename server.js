@@ -3,7 +3,7 @@ const readline = require("readline");
 const settings = require("./settings.json");
 
 const MOTD = "/help for help, /name to change name, Control + C to exit";
-
+const messageTerminator = "\n";
 const regex = /\b|([\u001b\u009b][[()#;?]*(?:[0-9]{1,4}(?:;[0-9]{0,4})*)?[0-9A-ORZcf-nqry=><])/g;
 
 const stripBadChars = data => data.replace(regex, "");
@@ -94,11 +94,11 @@ const server = net.createServer((socket) => {
   socket.on("data", function (data) {
     if(!data) return;
     data = data.toString();
-    if(!data.includes("\x1A")) return socket.incompleteData += data;
+    if(!data.includes(messageTerminator)) return socket.incompleteData += data;
 
     let buffer = "";
     data.split("").forEach(char => {
-      if(char === "\x1A"){
+      if(char === messageTerminator){
         const message = buffer;
         console.log("Got message", message);
         buffer = "";
@@ -150,7 +150,7 @@ server.listen(process.argv[3] || settings.port, () => {
 });
 
 function broadcast(message, sender) {
-  message = message.replace(/(.)\x08/g, "");
+  message = message.trim();
   process.stdout.write(message + "\n");
   clients.forEach(function (client) {
     // Don"t want to send it to sender

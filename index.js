@@ -2,6 +2,8 @@ const net = require("net");
 const readline = require("readline");
 const settings = require("./settings.json");
 const EventEmitter = require("events");
+const messageTerminator = "\n";
+const controlMessageChar = "\xB7";
 
 //enable raw mode
 if(process.stdin.isTTY) process.stdin.setRawMode(true);
@@ -16,21 +18,17 @@ rl.setPrompt("");
 const stdin = new EventEmitter();
 let buff = "";
 
-process.stdin
-  .on("data", data => {
-    if(data.toString()=== "\u0003") {
-    //Control+C exits
-      process.exit();
-    }
+process.stdin.on("data", data => {
+  if(data.toString()=== "\u0003") {
+  //Control+C exits
+    process.exit();
+  }
 
-    buff += data;
-    let lines = buff.split(/[\r\n|\n]/);
-    buff = lines.pop();
-    lines.forEach(line => stdin.emit("line", line));
-  })
-  .on("end", () => {
-    if (buff.length > 0) stdin.emit("line", buff);
-  });
+  buff += data;
+  let lines = buff.split(/[\r\n|\n]/);
+  buff = lines.pop();
+  lines.forEach(line => stdin.emit("line", line));
+});
 
 const exit = () => {
   console.log("Connection ended.");
@@ -47,13 +45,24 @@ const server = net.connect({
     throw err;
   }).
   on("data", (data) => {
-    process.stdout.write(data.toString() + "\n");
+    const lines = data.split("\n");
+    lines.forEach(line => {
+      if(line[0] === controlMessageChar){
+        const split = line.substr(1).split(" ");
+        const command = split[0];
+        const args = split.splice(1);
+
+        process.stdout.write("Control command " + command + " args " + args.join(" ") + "\n");
+      }else{
+        process.stdout.write(line.toString() + "\n");
+      }
+    });
   }).
   on("ready", () => {
     console.log("Connected to " + server.remoteAddress);
 
     rl.on("line", line => {
-      server.write(line);
+      server.write(line.trim() + messageTerminator);
     });
   }).
   on("close", exit).
