@@ -8,6 +8,7 @@ const MOTD = "/help for help, /name to change name, Control + C to exit";
 const meta = require("./meta.json");
 const messageTerminator = "\n";
 const regex = /\b|([\u001b\u009b][[()#;?]*(?:[0-9]{1,4}(?:;[0-9]{0,4})*)?[0-9A-ORZcf-nqry=><])/g;
+const validateName = str => str.replace(/[^ -~]/g, "");
 
 const stripBadChars = data => data.replace(regex, "");
 
@@ -32,7 +33,7 @@ const runCommand = (string, socket, respond) => {
     let name;
 
     const checkAdmin = () => !socket || socket.admin;
-    const findUser = name =>  clients.find(client => client.name === name || client.remoteAddress + ":" + client.remotePort === name);
+    const findUser = name =>  clients.find(client => client.name === name.toLowerCase() || client.remoteAddress + ":" + client.remotePort === name);
 
     switch (command) {
     case "quit":
@@ -44,7 +45,7 @@ const runCommand = (string, socket, respond) => {
     case "name":
       if(!socket) return respond("This command can not be used from the console.");
       if(!args[0]) return respond("Specify a new name as the first arg.");
-      name = args[0].toLowerCase();
+      name = validateName(args[0]).toLowerCase();
       if(clients.some(client => client.name === name)){
         return respond("Name already in use!");
       }
@@ -58,19 +59,20 @@ const runCommand = (string, socket, respond) => {
       respond(clients.map(c => c.name).join(", "));
       break;
     case "changename":
-      if(!checkAdmin()) return respond("Insufficient permissions!");
+      if(!checkAdmin()) return respond("Insufficient permission!");
       if(!args[0] || !args[1]) return respond("Specify the user as the first arg, and a new nick as the second.");
-      args[1] = stripBadChars(args[1]);
+      name = validateName(args[0]).toLowerCase();
       user = findUser(args[0]);
       if(!user) return respond("User not found.");
       if(clients.some(client => client.name === name)){
         return respond("Name already in use!");
       }
+      if(!validateName(user.name)) return respond("Your nickname must only contain non-control ASCII characters.");
       user.name = args[1];
       respond("Name changed.");
       break;
     case "kick":
-      if(!checkAdmin()) return respond("Insufficient permissions!");
+      if(!checkAdmin()) return respond("Insufficient permission!");
       if(!args[0]) return respond("Please specify the user to kick.");
       user = findUser(args[0]);
       if(!user) return respond("User not found.");
@@ -80,7 +82,7 @@ const runCommand = (string, socket, respond) => {
       user.destroy();
       break;
     case "banip":
-      if(!checkAdmin()) return respond("Insufficient permissions!");
+      if(!checkAdmin()) return respond("Insufficient permission!");
       if(!args[0]) return respond("Please specify the ip to ban.");
       if(ipBans.includes(args[0])) return respond("Already banned that ip!");
       clients.forEach(client => {
@@ -96,6 +98,20 @@ const runCommand = (string, socket, respond) => {
       user = findUser(args[0]);
       if(!user) return respond("Unknown user.");
       respond(user.remoteAddress + ":" + user.remotePort);
+      break;
+    case "promote":
+      if(!checkAdmin()) return respond("Insufficient permission!");
+      user = findUser(args[0]);
+      if(!user) return respond("Unknown user.");
+      respond("Promoted.");
+      user.admin = true;
+      break;
+    case "demote":
+      if(!checkAdmin()) return respond("Insufficient permission!");
+      user = findUser(args[0]);
+      if(!user) return respond("Unknown user.");
+      respond("Demoted.");
+      user.admin = false;
       break;
     default:
       respond("Unknown command " + stripBadChars(command));

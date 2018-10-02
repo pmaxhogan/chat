@@ -9,6 +9,8 @@
 		"/name",
 		"/quit",
 		"/banip",
-		"/whois"
+		"/whois",
+		"/promote",
+		"/demote"
 	]
 }
