@@ -20,6 +20,7 @@ const validateName = str => str.replace(/[^ -~]/g, "");
 
 // TODO read this from settings.json
 const MOTD = "/help for help, /name to change name, Control + C to exit";
+
 const messageTerminator = "\n";
 
 
