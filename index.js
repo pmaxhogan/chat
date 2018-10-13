@@ -54,6 +54,17 @@ const server = net.connect({
         const command = split[0];
         const args = split.splice(1);
 
+        switch(command){
+        case "startmeta":
+          isMeta = true;
+          break;
+        case "endmeta":
+          isMeta = true;
+          break;
+        default:
+          console.log("Unknown command", command, args);
+        }
+
         process.stdout.write("Control command " + command + " args " + args.join(" ") + "\n");
       }else{
         process.stdout.write(line.toString() + "\n");
