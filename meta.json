@@ -1,16 +1,5 @@
 {
+	"serverName": "Max's chat server",
 	"version": "Node.js chat",
-	"fullspec": false,
-	"commands": [
-		"/kick",
-		"/changename",
-		"/list",
-		"/help",
-		"/name",
-		"/quit",
-		"/banip",
-		"/whois",
-		"/promote",
-		"/demote"
-	]
+	"MOTD": "Welcome!\n/help for help, /name to change name, /quit to leave."
 }
