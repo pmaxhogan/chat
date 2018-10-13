@@ -5,7 +5,6 @@ const EventEmitter = require("events");
 const messageTerminator = "\n";
 const controlMessageChar = "\xB7";
 
-//enable raw mode
 if(process.stdin.isTTY) process.stdin.setRawMode(true);
 process.stdin.resume();
 
@@ -20,7 +19,7 @@ let buff = "";
 
 process.stdin.on("data", data => {
   if(data.toString()=== "\u0003") {
-  //Control+C exits
+  // Control+C exits
     process.exit();
   }
 
@@ -54,12 +53,13 @@ const server = net.connect({
         const command = split[0];
         const args = split.splice(1);
 
+        // TODO hide the metadata from the user and assign it to a global variable
         switch(command){
         case "startmeta":
-          isMeta = true;
+          isMeta = true; // eslint-disable-line no-undef
           break;
         case "endmeta":
-          isMeta = true;
+          isMeta = true; // eslint-disable-line no-undef
           break;
         default:
           console.log("Unknown command", command, args);
