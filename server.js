@@ -22,13 +22,24 @@ const rl = readline.createInterface({
 rl.setPrompt("");
 
 const ipBans = [];
+const commands = [
+  "/kick",
+  "/changename",
+  "/list",
+  "/help",
+  "/name",
+  "/quit",
+  "/banip",
+  "/whois",
+  "/promote",
+  "/demote"
+];
 
 const runCommand = (string, socket, respond) => {
   try{
     string = string.substr(1);
     const args = string.split(" ");
     const command = args.shift();
-    const commands = meta.commands;
     let user;
     let name;
 
