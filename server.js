@@ -1,16 +1,28 @@
 #!/usr/bin/env node
 
+// This program has some inconsistent styling when it comes to the function keyword vs. arrow functions,
+// see https://github.com/nodejs/node/issues/14496
+
+// requires
 const net = require("net");
 const readline = require("readline");
-const settings = require("./settings.json");
 
-const MOTD = "/help for help, /name to change name, Control + C to exit";
+const settings = require("./settings.json");
 const meta = require("./meta.json");
-const messageTerminator = "\n";
+
+// validation
 const regex = /\b|([\u001b\u009b][[()#;?]*(?:[0-9]{1,4}(?:;[0-9]{0,4})*)?[0-9A-ORZcf-nqry=><])/g;
+const stripBadChars = data => data.replace(regex, "");
+
 const validateName = str => str.replace(/[^ -~]/g, "");
 
-const stripBadChars = data => data.replace(regex, "");
+// other consts
+
+// TODO read this from settings.json
+const MOTD = "/help for help, /name to change name, Control + C to exit";
+
+const messageTerminator = "\n";
+
 
 if(process.stdin.isTTY) process.stdin.setRawMode(true);
 process.stdin.resume();
@@ -22,6 +34,8 @@ const rl = readline.createInterface({
 rl.setPrompt("");
 
 const ipBans = [];
+
+// (Future suggestion, would need to modify spec) decouple the slashes so that a command prefix can be set in settings.json
 const commands = [
   "/kick",
   "/changename",
@@ -40,12 +54,25 @@ const runCommand = (string, socket, respond) => {
     string = string.substr(1);
     const args = string.split(" ");
     const command = args.shift();
+    
+    // TODO change this to something more indicative of its purpose ("targetUser" or something, idk).
+    //  better yet, remove it since it's only used in a few cases (and it's assigned there anyway)
     let user;
+
     let name;
 
+    // socket is undefined if the command was issued from the console
     const checkAdmin = () => !socket || socket.admin;
+
+    /*
+    * can find a user by name or IPv6
+    * TODO support searching by IPv4
+    * TODO figure out what to do if two clients have the same name,
+    *  or if one client's name is another's IPv6
+    */
     const findUser = name =>  clients.find(client => client.name === name.toLowerCase() || client.remoteAddress + ":" + client.remotePort === name);
 
+    // TODO figure out how to make this less of a wall of text and more extensible
     switch (command) {
     case "quit":
       socket.end();
@@ -125,6 +152,7 @@ const runCommand = (string, socket, respond) => {
       user.admin = false;
       break;
     default:
+      // TODO call stripBadChars right after the message is read to save code when writing new commands
       respond("Unknown command " + stripBadChars(command));
     }
   }catch(e){
@@ -133,6 +161,7 @@ const runCommand = (string, socket, respond) => {
   }
 };
 
+// List of sockets
 const clients = [];
 
 const server = net.createServer((socket) => {
@@ -145,6 +174,7 @@ const server = net.createServer((socket) => {
     socket.destroy();
     return;
   }
+  // TODO make the number of connections per IP configurable via settings.json
   if(clients.some(client => client.remoteAddress === socket.remoteAddress) && socket.remoteAddress !== "127.0.0.1" && socket.remoteAddress !== "::ffff:127.0.0.1"){
     socket.safeWrite("One client per IP!");
     socket.end();
@@ -153,10 +183,12 @@ const server = net.createServer((socket) => {
   socket.name = socket.remoteAddress + ":" + socket.remotePort;
   clients.push(socket);
 
+  // TODO make this a bit more readable, and, you know, *send the control message character*
   socket.sendControlMessage = (message, ...args) => {
     socket.safeWrite("·" + message + (args.length ? " " + args.join(" ").trim() : "") + "\n");
   };
 
+  // TODO only send this when the client requests it
   socket.sendControlMessage("startmeta");
   socket.safeWrite(JSON.stringify(meta) + "\n");
   socket.sendControlMessage("endmeta");
@@ -168,10 +200,14 @@ const server = net.createServer((socket) => {
 
   socket.incompleteData = "";
   socket.on("data", function (data) {
+    // If nothing was actually passed in
     if(!data) return;
     data = data.toString();
+
+    // We just add to the buffer when there is no line terminator because messages aren't always sent all at once
     if(!data.includes(messageTerminator)) return socket.incompleteData += data;
 
+    // (Suggestion) Why do we have both incompleteData and buffer? They do virtually the same thing, and could be reworked into one
     let buffer = "";
     data.split("").forEach(char => {
       if(char === messageTerminator){
@@ -189,8 +225,11 @@ const server = net.createServer((socket) => {
     });
   });
 
+  // Shouldn't we also notify everyone that the user left here?
   socket.on("end", function () {
     const idx = clients.indexOf(socket);
+
+    // Should remove this right here v, replace with idx
     if(idx >= 0) clients.splice(clients.indexOf(socket), 1);
   });
 
@@ -200,6 +239,7 @@ const server = net.createServer((socket) => {
     broadcast(socket.name + " left");
   });
 
+  // Shouldn't we also notify everyone that the user left here?
   socket.on("error", (err) => {
     if(err.code === "ECONNRESET"){
       clients.splice(clients.indexOf(socket), 1);
@@ -208,8 +248,7 @@ const server = net.createServer((socket) => {
 
     console.log(err.code, "from", socket.name, err);
   });
-}).on("error", (err) => {
-  // handle errors here
+}).on("error", (err) => { // (Suggestion) remove this, there's no point in catching an error and immediately throwing it again
   throw err;
 });
 
@@ -220,7 +259,6 @@ rl.on("line", line => {
   broadcast("[server] " + line);
 });
 
-// grab an arbitrary unused port.
 server.listen(process.argv[3] || settings.port, () => {
   console.log("opened server on", server.address());
 });
