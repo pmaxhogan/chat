@@ -54,7 +54,7 @@ const runCommand = (string, socket, respond) => {
     string = string.substr(1);
     const args = string.split(" ");
     const command = args.shift();
-    
+
     // TODO change this to something more indicative of its purpose ("targetUser" or something, idk).
     //  better yet, remove it since it's only used in a few cases (and it's assigned there anyway)
     let user;
